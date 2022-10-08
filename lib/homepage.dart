@@ -118,7 +118,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     //if nto first device add to end and increade device list length
                                     newList.add({"name": devName, "key": uid});
                                     notifier.deviceList = json.encode(newList);
-                                    notifier.device += 1;
+                                    notifier.device = newList.length - 1;
                                   }
                                 }
                                 setSwitch(
