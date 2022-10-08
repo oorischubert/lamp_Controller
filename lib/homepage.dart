@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+//import 'package:flutter/services.dart';
 import 'package:led_controller/usersettings.dart';
 import 'package:provider/provider.dart';
 import 'controller.dart';
 import 'decor.dart';
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   @override
@@ -11,7 +12,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  String uid = "";
+  String uid = ""; //current device uid
+  String devName = ""; //current device name
   final Controller _buttonController = Controller();
   bool swValue = false; //init switch value
   bool swLoaded = false; //ProgressIndicator toggler
@@ -27,7 +29,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  Future _setURL(bool barrier) async {
+  Future _devSettings(bool barrier) async {
     uid = UserSettings.getUID(); //reset uid
     showDialog(
         barrierDismissible: barrier,
@@ -37,35 +39,74 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               return AlertDialog(
                 title: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [Text('Set Key')]),
-                content: TextFormField(
-                  initialValue: notifier.uid,
-                  decoration: InputDecoration(
-                    labelText: 'Device Key:',
-                    enabledBorder: Decor.inputformdeco(),
-                    focusedBorder: Decor.inputformdeco(),
+                    children: const [Text('Settings')]),
+                content: Column(mainAxisSize: MainAxisSize.min, children: [
+                  TextFormField(
+                    initialValue:
+                        json.decode(notifier.deviceList)[notifier.device][0],
+                    decoration: InputDecoration(
+                      labelText: 'Device Name:',
+                      enabledBorder: Decor.inputformdeco(),
+                      focusedBorder: Decor.inputformdeco(),
+                    ),
+                    onChanged: (value) {
+                      devName = value.trim();
+                    },
                   ),
-                  onChanged: (value) {
-                    uid = value.trim();
-                  },
-                ),
+                  const SizedBox(height: 30),
+                  TextFormField(
+                    initialValue:
+                        json.decode(notifier.deviceList)[notifier.device][1],
+                    decoration: InputDecoration(
+                      labelText: 'Device Key:',
+                      enabledBorder: Decor.inputformdeco(),
+                      focusedBorder: Decor.inputformdeco(),
+                    ),
+                    onChanged: (value) {
+                      uid = value.trim();
+                    },
+                  ),
+                ]),
                 actions: [
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     TextButton(
                         onPressed: () {
-                          if (uid != "" && uid != notifier.uid) {
-                            notifier.uid = uid;
-                            setSwitch(value: notifier.uid);
+                          if (uid != "" &&
+                              uid !=
+                                  json.decode(
+                                          notifier.deviceList)[notifier.device]
+                                      [1]) {
+                            List newList = json.decode(notifier.deviceList);
+                            newList[notifier.device][1] = uid;
+                            notifier.deviceList = json.encode(newList);
                           }
-                          if (uid != "") {
+                          if (devName != "" &&
+                              devName !=
+                                  json.decode(
+                                          notifier.deviceList)[notifier.device]
+                                      [1]) {
+                            List newList = json.decode(notifier.deviceList);
+                            newList[notifier.device][0] = devName;
+                            notifier.deviceList = json.encode(newList);
+                          }
+
+                          if (uid != "" && devName != "") {
+                            setSwitch(
+                                value: json.decode(
+                                    notifier.deviceList)[notifier.device][1]);
                             Navigator.pop(context);
+                          }
+                          if (devName == "") {
+                            ScaffoldMessenger.of(context)
+                              ..removeCurrentSnackBar()
+                              ..showSnackBar(const SnackBar(
+                                  content: Text('Please input device name!')));
                           }
                           if (uid == "") {
                             ScaffoldMessenger.of(context)
                               ..removeCurrentSnackBar()
                               ..showSnackBar(const SnackBar(
-                                  content:
-                                      Text('Please input device key!')));
+                                  content: Text('Please input device key!')));
                           }
                         },
                         child: Transform.scale(
@@ -80,11 +121,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); //app state observer
-    uid = UserSettings.getUID();
+    uid =
+        json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()][1];
+    devName =
+        json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()][1];
     (uid == "")
         ?
         //does only after widgets are built!
-        WidgetsBinding.instance.addPostFrameCallback((_) => _setURL(false))
+        WidgetsBinding.instance.addPostFrameCallback((_) => _devSettings(false))
         : setSwitch(value: uid);
   }
 
@@ -105,7 +149,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         state == AppLifecycleState.paused) return;
 
     if (unPaused) {
-      setSwitch(value: UserSettings.getUID());
+      setSwitch(
+          value: json.decode(
+              UserSettings.getDeviceList())[UserSettings.getDevice()][1]);
     }
   }
 
@@ -114,38 +160,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Consumer(builder: (context, UserProvider notifier, child) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Lamp Switch'),
-          leading: GestureDetector(
-              onTap: () {
-                //open info page or popup!
-                _setURL(true);
-              },
-              child: const Padding(
-                padding: EdgeInsets.only(left: 20),
-                child: SizedBox(
-                    height: 40,
-                    width: 40,
-                    child: FittedBox(
-                        child: Icon(
-                      Icons.settings, //Icons.settings
-                    ))),
-              )),
+          title: Text(json.decode(
+              UserSettings.getDeviceList())[UserSettings.getDevice()][0]),
           actions: <Widget>[
             GestureDetector(
               onTap: () {
-                setSwitch(value: notifier.uid);
+                _devSettings(true);
               },
               child: Padding(
                   padding: const EdgeInsets.only(right: 20),
                   child: Transform.scale(
                       scale: 1.5,
                       child: const Icon(
-                        Icons.refresh_rounded,
+                        Icons.settings, //refresh_rounded
                       ))),
             ),
           ],
         ),
-       
+        drawer: Drawer(
+          // Add a ListView to the drawer. This ensures the user can scroll
+          // through the options in the drawer if there isn't enough vertical
+          // space to fit everything.
+          child: ListView(
+            // Important: Remove any padding from the ListView.
+            padding: EdgeInsets.zero,
+            children: [
+              const DrawerHeader(child: Text("Menu")),
+              ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: json.decode(notifier.deviceList).length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(json.decode(notifier.deviceList)[index][0]),
+                      onTap: () {
+                        notifier.device = index;
+
+                        setSwitch(
+                            value: json.decode(notifier.deviceList)[index][1]);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+            ],
+          ),
+        ),
         body: SizedBox(
           width: double.infinity,
           child: Column(
@@ -167,9 +225,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 });
                                 swValue
                                     ? _buttonController.setState(
-                                        value: "H", key: notifier.uid)
+                                        value: "H",
+                                        key: json.decode(notifier.deviceList)[
+                                            notifier.device][1])
                                     : _buttonController.setState(
-                                        value: "L", key: notifier.uid);
+                                        value: "L",
+                                        key: json.decode(notifier.deviceList)[
+                                            notifier.device][1]);
                               }))
                       : Transform.scale(
                           scale: 6,

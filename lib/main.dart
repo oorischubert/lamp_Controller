@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
         child: Consumer(builder: (context, UserProvider notifier, child) {
           return MaterialApp(
             debugShowCheckedModeBanner:
-                false, //removes annoying debug banner in debug mode
+                true, //removes annoying debug banner in debug mode if false
             title: 'Flutter Demo',
             theme: ThemeData(
               brightness: Brightness.dark,
