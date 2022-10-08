@@ -1,10 +1,7 @@
 import 'dart:convert';
-//import 'package:flutter/material.dart';
-//import 'package:led_controller/usersettings.dart';
 import 'package:http/http.dart' as http;
-//import 'package:provider/provider.dart';
 
-import 'decor.dart';
+//TODO: IMPLEMENT ERROR DETECTION
 
 class Controller {
   final String url = "https://espledoori.herokuapp.com/color?key=";

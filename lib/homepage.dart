@@ -29,10 +29,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  Future _devSettings(bool barrier) async {
-    uid = UserSettings.getUID(); //reset uid
+  Future _devSettings(
+      {required bool barrier,
+      bool newDev = false,
+      bool firstDev = false}) async {
+    if (newDev) {
+      devName = "";
+      uid = "";
+    } else {
+      uid = json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()]
+          ['key']; //reset uid
+      devName =
+          json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()]
+              ['name']; //reset devName
+    }
     showDialog(
-        barrierDismissible: barrier,
+        barrierDismissible: !barrier,
         context: context,
         builder: (context) =>
             Consumer(builder: (context, UserProvider notifier, child) {
@@ -42,8 +54,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     children: const [Text('Settings')]),
                 content: Column(mainAxisSize: MainAxisSize.min, children: [
                   TextFormField(
-                    initialValue:
-                        json.decode(notifier.deviceList)[notifier.device][0],
+                    initialValue: devName,
                     decoration: InputDecoration(
                       labelText: 'Device Name:',
                       enabledBorder: Decor.inputformdeco(),
@@ -55,8 +66,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 30),
                   TextFormField(
-                    initialValue:
-                        json.decode(notifier.deviceList)[notifier.device][1],
+                    initialValue: uid,
                     decoration: InputDecoration(
                       labelText: 'Device Key:',
                       enabledBorder: Decor.inputformdeco(),
@@ -68,50 +78,109 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                 ]),
                 actions: [
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    TextButton(
-                        onPressed: () {
-                          if (uid != "" &&
-                              uid !=
-                                  json.decode(
-                                          notifier.deviceList)[notifier.device]
-                                      [1]) {
-                            List newList = json.decode(notifier.deviceList);
-                            newList[notifier.device][1] = uid;
-                            notifier.deviceList = json.encode(newList);
-                          }
-                          if (devName != "" &&
-                              devName !=
-                                  json.decode(
-                                          notifier.deviceList)[notifier.device]
-                                      [1]) {
-                            List newList = json.decode(notifier.deviceList);
-                            newList[notifier.device][0] = devName;
-                            notifier.deviceList = json.encode(newList);
-                          }
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Spacer(),
+                        const Spacer(),
+                        TextButton(
+                            onPressed: () {
+                              if (uid != "" &&
+                                  uid !=
+                                      json.decode(notifier.deviceList)[
+                                          notifier.device]["key"] &&
+                                  !newDev) {
+                                List newList = json.decode(notifier.deviceList);
+                                newList[notifier.device]["key"] = uid;
+                                notifier.deviceList = json.encode(newList);
+                              }
+                              if (devName != "" &&
+                                  devName !=
+                                      json.decode(notifier.deviceList)[
+                                          notifier.device]["name"] &&
+                                  !newDev) {
+                                List newList = json.decode(notifier.deviceList);
+                                newList[notifier.device]["name"] = devName;
+                                notifier.deviceList = json.encode(newList);
+                              }
 
-                          if (uid != "" && devName != "") {
-                            setSwitch(
-                                value: json.decode(
-                                    notifier.deviceList)[notifier.device][1]);
-                            Navigator.pop(context);
-                          }
-                          if (devName == "") {
-                            ScaffoldMessenger.of(context)
-                              ..removeCurrentSnackBar()
-                              ..showSnackBar(const SnackBar(
-                                  content: Text('Please input device name!')));
-                          }
-                          if (uid == "") {
-                            ScaffoldMessenger.of(context)
-                              ..removeCurrentSnackBar()
-                              ..showSnackBar(const SnackBar(
-                                  content: Text('Please input device key!')));
-                          }
-                        },
-                        child: Transform.scale(
-                            scale: 1.5, child: const Text('Save')))
-                  ]),
+                              if (uid != "" && devName != "") {
+                                if (newDev) {
+                                  List newList =
+                                      json.decode(notifier.deviceList);
+                                  if (firstDev) {
+                                    //if first device need to replace empty device with info
+                                    newList = [
+                                      {"name": devName, "key": uid}
+                                    ];
+                                    notifier.deviceList = json.encode(newList);
+                                  } else {
+                                    //if nto first device add to end and increade device list length
+                                    newList.add({"name": devName, "key": uid});
+                                    notifier.deviceList = json.encode(newList);
+                                    notifier.device += 1;
+                                  }
+                                }
+                                setSwitch(
+                                    value: json.decode(notifier.deviceList)[
+                                        notifier.device]["key"]);
+                                Navigator.pop(context);
+                              }
+                              if (devName == "") {
+                                ScaffoldMessenger.of(context)
+                                  ..removeCurrentSnackBar()
+                                  ..showSnackBar(const SnackBar(
+                                      content:
+                                          Text('Please input device name!')));
+                              }
+                              if (uid == "") {
+                                ScaffoldMessenger.of(context)
+                                  ..removeCurrentSnackBar()
+                                  ..showSnackBar(const SnackBar(
+                                      content:
+                                          Text('Please input device key!')));
+                              }
+                            },
+                            child: Transform.scale(
+                                scale: 1.5, child: const Text('Save'))),
+                        const Spacer(),
+                        if (!newDev)
+                          TextButton(
+                            onPressed: () async {
+                              bool delete = await Decor.verifyPopUp(
+                                  context: context,
+                                  titleText:
+                                      "Delete ${json.decode(notifier.deviceList)[notifier.device]["name"]} ?");
+                              if (delete) {
+                                //delete device from deviceList in UserSettings
+                                List newList = json.decode(notifier.deviceList);
+                                newList.removeAt(notifier.device);
+                                notifier.deviceList = json.encode(newList);
+                                if (notifier.device > 0) {
+                                  notifier.device -= 1;
+                                } else if (newList.isEmpty) {
+                                  notifier.deviceList = json.encode([
+                                    {"name": "", "key": ""}
+                                  ]);
+                                  _devSettings(
+                                      barrier: true,
+                                      newDev: true,
+                                      firstDev: true);
+                                }
+                                setSwitch(
+                                    value: json.decode(notifier.deviceList)[
+                                        notifier.device]["key"]);
+                              }
+                            },
+                            child: Transform.scale(
+                                scale: 1.5,
+                                child: const Icon(
+                                  Icons.delete, //refresh_rounded
+                                )),
+                          )
+                        else
+                          const Spacer(),
+                      ]),
                 ],
               );
             }));
@@ -121,15 +190,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); //app state observer
-    uid =
-        json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()][1];
-    devName =
-        json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()][1];
-    (uid == "")
+    (json.decode(UserSettings.getDeviceList())[UserSettings.getDevice()]
+                ["key"] ==
+            "")
         ?
         //does only after widgets are built!
-        WidgetsBinding.instance.addPostFrameCallback((_) => _devSettings(false))
-        : setSwitch(value: uid);
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _devSettings(barrier: true, newDev: true, firstDev: true))
+        : {
+            uid = json.decode(
+                UserSettings.getDeviceList())[UserSettings.getDevice()]["key"],
+            devName = json.decode(
+                UserSettings.getDeviceList())[UserSettings.getDevice()]["name"],
+            setSwitch(value: uid)
+          };
   }
 
   @override
@@ -151,7 +225,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (unPaused) {
       setSwitch(
           value: json.decode(
-              UserSettings.getDeviceList())[UserSettings.getDevice()][1]);
+              UserSettings.getDeviceList())[UserSettings.getDevice()]["key"]);
     }
   }
 
@@ -160,12 +234,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return Consumer(builder: (context, UserProvider notifier, child) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(json.decode(
-              UserSettings.getDeviceList())[UserSettings.getDevice()][0]),
+          title: GestureDetector(
+              onTap: () {
+                setSwitch(
+                    value: json.decode(notifier.deviceList)[notifier.device]
+                        ["key"]);
+              },
+              child: Text(
+                  json.decode(notifier.deviceList)[notifier.device]["name"])),
           actions: <Widget>[
             GestureDetector(
               onTap: () {
-                _devSettings(true);
+                _devSettings(barrier: false);
               },
               child: Padding(
                   padding: const EdgeInsets.only(right: 20),
@@ -178,29 +258,46 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ],
         ),
         drawer: Drawer(
-          // Add a ListView to the drawer. This ensures the user can scroll
-          // through the options in the drawer if there isn't enough vertical
-          // space to fit everything.
           child: ListView(
             // Important: Remove any padding from the ListView.
             padding: EdgeInsets.zero,
             children: [
-              const DrawerHeader(child: Text("Menu")),
+              DrawerHeader(
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                    Text(
+                      "Menu",
+                      style: Decor.textStyler(size: 30, color: Colors.white),
+                    )
+                  ])),
               ListView.builder(
                   shrinkWrap: true,
                   itemCount: json.decode(notifier.deviceList).length,
                   itemBuilder: (context, index) {
                     return ListTile(
-                      title: Text(json.decode(notifier.deviceList)[index][0]),
+                      title:
+                          Text(json.decode(notifier.deviceList)[index]["name"]),
                       onTap: () {
                         notifier.device = index;
-
                         setSwitch(
-                            value: json.decode(notifier.deviceList)[index][1]);
+                            value: json.decode(
+                                notifier.deviceList)[notifier.device]["key"]);
                         Navigator.pop(context);
                       },
                     );
                   }),
+              ElevatedButton(
+                  //add new device to deviceList in UserSettings
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _devSettings(barrier: false, newDev: true);
+                  },
+                  child: Transform.scale(
+                      scale: 1.5,
+                      child: const Icon(
+                        Icons.add,
+                      )))
             ],
           ),
         ),
@@ -227,11 +324,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ? _buttonController.setState(
                                         value: "H",
                                         key: json.decode(notifier.deviceList)[
-                                            notifier.device][1])
+                                            notifier.device]["key"])
                                     : _buttonController.setState(
                                         value: "L",
                                         key: json.decode(notifier.deviceList)[
-                                            notifier.device][1]);
+                                            notifier.device]["key"]);
                               }))
                       : Transform.scale(
                           scale: 6,

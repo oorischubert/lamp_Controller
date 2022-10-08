@@ -51,6 +51,39 @@ class Decor {
     Future.delayed(Duration(milliseconds: milliseconds))
         .then((value) => HapticFeedback.heavyImpact());
   }
+
+  static Future<bool> verifyPopUp(
+    //popup for verification, returns true if button pressed, false if dismissed.
+      {required context,
+      required String titleText,
+      String text = "",
+      String buttonText = "Ok"}) async {
+    bool ret = false; //bool to return
+    await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [Text(titleText)]),
+              actions: [
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Transform.scale(
+                      scale: 1.5,
+                      child: TextButton(
+                          onPressed: <bool>() {
+                            Navigator.pop(context, true);
+                            Navigator.pop(context, true);
+                            ret = true; //make return true
+                          },
+                          child: Text(
+                            buttonText,
+                            style: const TextStyle(color: Colors.blue),
+                          )))
+                ]),
+              ],
+            ));
+    return ret; //return whether or not the user pressed ok
+  }
 }
 
 class ScaledBox extends StatelessWidget {
@@ -68,5 +101,26 @@ class ScaledBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
         height: height, width: width, child: FittedBox(child: child));
+  }
+}
+
+//wraps text in an auto expanding enclosure.
+class TextWrapper extends StatelessWidget {
+  final String text;
+  const TextWrapper({Key? key, required this.text})
+      : super(
+          key: key,
+        );
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      maxLines: null,
+      readOnly: true,
+      initialValue: text,
+      decoration: InputDecoration(
+        enabledBorder: Decor.inputformdeco(),
+        focusedBorder: Decor.inputformdeco(),
+      ),
+    );
   }
 }
