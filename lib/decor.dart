@@ -53,10 +53,9 @@ class Decor {
   }
 
   static Future<bool> verifyPopUp(
-    //popup for verification, returns true if button pressed, false if dismissed.
+      //popup for verification, returns true if button pressed, false if dismissed.
       {required context,
       required String titleText,
-      String text = "",
       String buttonText = "Ok"}) async {
     bool ret = false; //bool to return
     await showDialog(

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:flutter/services.dart';
 import 'package:led_controller/usersettings.dart';
 import 'package:provider/provider.dart';
 import 'controller.dart';
@@ -7,6 +6,8 @@ import 'decor.dart';
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -14,7 +15,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String uid = ""; //current device uid
   String devName = ""; //current device name
-  final Controller _buttonController = Controller();
+  final Controller _buttonController = Controller(); //http controller
   bool swValue = false; //init switch value
   bool swLoaded = false; //ProgressIndicator toggler
 
@@ -51,7 +52,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               return AlertDialog(
                 title: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [Text('Settings')]),
+                    children: [
+                      if (!newDev)
+                        const Text('Settings')
+                      else
+                        const Text('Add Device')
+                    ]),
                 content: Column(mainAxisSize: MainAxisSize.min, children: [
                   TextFormField(
                     initialValue: devName,
@@ -103,7 +109,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 newList[notifier.device]["name"] = devName;
                                 notifier.deviceList = json.encode(newList);
                               }
-
                               if (uid != "" && devName != "") {
                                 if (newDev) {
                                   List newList =
@@ -127,18 +132,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 Navigator.pop(context);
                               }
                               if (devName == "") {
-                                ScaffoldMessenger.of(context)
-                                  ..removeCurrentSnackBar()
-                                  ..showSnackBar(const SnackBar(
-                                      content:
-                                          Text('Please input device name!')));
+                                Decor.notification(
+                                    text: 'Please input device name!',
+                                    context: context);
                               }
                               if (uid == "") {
-                                ScaffoldMessenger.of(context)
-                                  ..removeCurrentSnackBar()
-                                  ..showSnackBar(const SnackBar(
-                                      content:
-                                          Text('Please input device key!')));
+                                Decor.notification(
+                                    text: 'Please input device key!',
+                                    context: context);
                               }
                             },
                             child: Transform.scale(
@@ -150,7 +151,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               bool delete = await Decor.verifyPopUp(
                                   context: context,
                                   titleText:
-                                      "Delete ${json.decode(notifier.deviceList)[notifier.device]["name"]} ?");
+                                      "Delete ${json.decode(notifier.deviceList)[notifier.device]["name"]}?");
                               if (delete) {
                                 //delete device from deviceList in UserSettings
                                 List newList = json.decode(notifier.deviceList);

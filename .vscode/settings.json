@@ -1,3 +1,4 @@
 {
-  "idf.flashType": "JTAG"
+  "idf.flashType": "JTAG",
+  "cmake.sourceDirectory": "${workspaceFolder}/linux"
 }
